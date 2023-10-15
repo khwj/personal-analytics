@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -70,7 +71,7 @@ def refresh_token_handler(request):
         creds.refresh(Request())
         update_status = state_store.set_document_by_id(
             GOOGLE_CREDENTIALS_DOCUMENT_ID,
-            creds.to_json()
+            json.loads(creds.to_json())
         )
         return f"Token is successfully refreshed <br/>{update_status}"
     except Exception:
