@@ -51,16 +51,17 @@ class GmailSync:
         - sync_state_doc_id (str): Document ID of sync state, defaults to 'last_sync_state'.
         """
 
-        if not gmail_client:
-            self.__init_gmail_client(credentials_cache_path, credentials_doc_id)
-
         self.__state_store = state_store
         self.__storage = storage
-        self.__gmail = gmail_client
         self.__base_path = base_path.strip('/')
         self.__sync_state_doc_id = sync_state_doc_id
+        self.__credentials_doc_id = credentials_doc_id
 
-    def __init_gmail_client(self, cache_path: str, credentials_doc_id: str) -> build:
+        if not gmail_client:
+            self.__init_gmail_client(credentials_cache_path, credentials_doc_id)
+        self.__gmail = gmail_client
+
+    def __init_gmail_client(self, credentials_cache_path, credentials_doc_id) -> build:
         """
         Initialize Gmail client.
 
@@ -73,12 +74,12 @@ class GmailSync:
         """
         creds = None
         try:
-            if os.path.exists(cache_path):
+            if os.path.exists(credentials_cache_path):
                 creds = Credentials.from_authorized_user_file('token.json')
             if not creds or not creds.valid or creds.expired:
                 creds_doc = self.__state_store.get_document_by_id(credentials_doc_id)
                 creds = Credentials.from_authorized_user_info(creds_doc)
-                with open(cache_path, 'w') as token:
+                with open(credentials_cache_path, 'w') as token:
                     token.write(creds.to_json())
         except Exception as e:
             raise RuntimeError("Failed to initialize Gmail client.") from e

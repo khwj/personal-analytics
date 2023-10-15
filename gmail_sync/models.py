@@ -18,3 +18,9 @@ class Message:
     subject: str
     recieved_date: int
     attachments: List[Attachment]
+
+
+@dataclass
+class WatchResult:
+    history_id: str
+    expiration: int

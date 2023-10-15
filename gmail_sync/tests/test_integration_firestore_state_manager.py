@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 TEST_FIRESTORE_HOST = 'localhost:8143'
 
+
 class FirestoreStateStoreIntegrationTest(unittest.TestCase):
 
     @classmethod

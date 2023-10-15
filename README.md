@@ -1,0 +1,1 @@
+![Gmail Sync](https://github.com/github/docs/actions/workflows/app-gmail-sync.yml/badge.svg)
