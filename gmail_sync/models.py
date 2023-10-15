@@ -9,6 +9,7 @@ class Attachment:
     mime_type: str | None
     data: bytes
 
+
 @dataclass
 class Message:
     id: str

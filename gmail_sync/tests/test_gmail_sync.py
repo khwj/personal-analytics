@@ -23,8 +23,8 @@ class GmailSyncTest(unittest.TestCase):
 
         # Initializing GmailSync with mocked dependencies
         self.gmail_sync = GmailSync(
-            state_store=self.mock_state_store, 
-            storage=self.mock_storage, 
+            state_store=self.mock_state_store,
+            storage=self.mock_storage,
             gmail_client=self.mock_gmail_client
         )
 
@@ -39,10 +39,9 @@ class GmailSyncTest(unittest.TestCase):
         mock_credentials.from_authorized_user_info.return_value = mock_creds
         mock_credentials.from_authorized_user_file.return_value = None
 
-        # Mock methods and attributes
         self.mock_state_store.get_document_by_id.return_value = {
-            'client_secret': "MOCK_CLIENT_SECRET", 
-            'refresh_token': "MOCK_REFRESH_TOKEN", 
+            'client_secret': "MOCK_CLIENT_SECRET",
+            'refresh_token': "MOCK_REFRESH_TOKEN",
             'client_id': "MOCK_CLIENT_ID"
         }
 
@@ -51,11 +50,11 @@ class GmailSyncTest(unittest.TestCase):
             cache_path = temp.name
             credentials_doc_id = "credentials_doc_id"
 
-            # Call the method
             client = self.gmail_sync._GmailSync__init_gmail_client(cache_path, credentials_doc_id)
 
             # Assert the Gmail client is built correctly
-            mock_build.assert_called_once_with('gmail', 'v1', credentials=mock_credentials.from_authorized_user_info.return_value)
+            mock_credentials = mock_credentials.from_authorized_user_info.return_value
+            mock_build.assert_called_once_with('gmail', 'v1', credentials=mock_credentials)
             self.assertEqual(client, mock_build.return_value)
 
     @patch("gmail_sync.Credentials")
@@ -67,25 +66,7 @@ class GmailSyncTest(unittest.TestCase):
         mock_creds.valid = True
         mock_creds.expired = False
         mock_credentials.from_authorized_user_file.return_value = mock_creds
-        
-        cache_path = 'token.json'
-        credentials_doc_id = "credentials_doc_id"
-        _ = self.gmail_sync._GmailSync__init_gmail_client(cache_path, credentials_doc_id)
 
-        mock_exists.assert_called_once_with(cache_path)
-        mock_credentials.from_authorized_user_file.assert_called_once_with('token.json')
-        mock_build.assert_called_once_with('gmail', 'v1', credentials=mock_creds)
-
-    @patch("gmail_sync.Credentials")
-    @patch("gmail_sync.build")
-    @patch('gmail_sync.os.path.exists')
-    def test_init_gmail_client_invalid_credentials(self, mock_exists, mock_build, mock_credentials):
-        mock_exists.return_value = True
-        mock_creds = MagicMock()
-        mock_creds.valid = True
-        mock_creds.expired = False
-        mock_credentials.from_authorized_user_file.return_value = mock_creds
-        
         cache_path = 'token.json'
         credentials_doc_id = "credentials_doc_id"
         _ = self.gmail_sync._GmailSync__init_gmail_client(cache_path, credentials_doc_id)
@@ -107,8 +88,8 @@ class GmailSyncTest(unittest.TestCase):
 
         # Mock methods and attributes
         self.mock_state_store.get_document_by_id.return_value = {
-            'client_secret': "MOCK_CLIENT_SECRET", 
-            'refresh_token': "MOCK_REFRESH_TOKEN", 
+            'client_secret': "MOCK_CLIENT_SECRET",
+            'refresh_token': "MOCK_REFRESH_TOKEN",
             'client_id': "MOCK_CLIENT_ID"
         }
 
@@ -117,11 +98,11 @@ class GmailSyncTest(unittest.TestCase):
             cache_path = temp.name
             credentials_doc_id = "credentials_doc_id"
 
-            # Call the method
             client = self.gmail_sync._GmailSync__init_gmail_client(cache_path, credentials_doc_id)
 
             # Assert the Gmail client is built correctly
-            mock_build.assert_called_once_with('gmail', 'v1', credentials=mock_credentials.from_authorized_user_info.return_value)
+            mock_credentials = mock_credentials.from_authorized_user_info.return_value
+            mock_build.assert_called_once_with('gmail', 'v1', credentials=mock_credentials)
             self.assertEqual(client, mock_build.return_value)
 
     @patch("gmail_sync.Credentials")
@@ -134,9 +115,7 @@ class GmailSyncTest(unittest.TestCase):
             self.gmail_sync._GmailSync__init_gmail_client('cache_path', 'credentials_doc_id')
         self.assertIn("Failed to initialize Gmail client.", str(context.exception))
 
-
     def test_get_message(self):
-        # Mocking Gmail API response for a message
         self.mock_gmail_client.users().messages().get().execute.return_value = {
             'id': 'msg1',
             'threadId': 'thread1',
@@ -149,28 +128,21 @@ class GmailSyncTest(unittest.TestCase):
             },
             'internalDate': '1634047722'
         }
-        
         # Running get_message
         message = self.gmail_sync.get_message(msg_id='msg1')
-        
+
         # Verifying the returned message and interactions with Gmail API
         self.assertEqual(message.id, 'msg1')
         self.assertEqual(message.from_address, 'test@example.com')
         self.mock_gmail_client.users().messages().get.assert_called_with(userId='me', id='msg1')
 
-
     def test_save_message_attachments(self):
-        # Mocking a Message instance
         attachment = Attachment(id='att1', filename='file1', mime_type='image/jpeg', data=b'data')
         message = Message(
             id='msg1', thread_id='thread1', from_address='test@example.com',
             subject='Test Email (01/01/2022)', recieved_date=1634047722, attachments=[attachment]
         )
-        
-        # Running __save_message_attachments
         self.gmail_sync._GmailSync__save_message_attachments(message)
-            
-        # Verifying interactions with StorageManager
         self.mock_storage.put.assert_called_with(
             key=unittest.mock.ANY,  # UUID will be generated dynamically
             data=attachment.data,
@@ -205,11 +177,9 @@ class GmailSyncTest(unittest.TestCase):
                 ]
             }
         }
-        
-        # Running __extract_attachment_info
+
         attachments = self.gmail_sync._GmailSync__extract_attachment_info(message)
-        
-        # Verifying the extracted attachment information
+
         self.assertEqual(len(attachments), 2)
         self.assertEqual(attachments[0]['filename'], 'file1')
         self.assertEqual(attachments[1]['filename'], 'file2')
@@ -227,11 +197,9 @@ class GmailSyncTest(unittest.TestCase):
         attachments = self.gmail_sync._GmailSync__extract_attachment_info(message)
         self.assertEqual(len(attachments), 0)
 
-
     def test_sync_with_api_failure(self):
         # Mocking Gmail API failure
         self.mock_gmail_client.users().history().list().execute.side_effect = Exception('API Error')
-        
         # Running sync and verifying that an exception was logged
         with self.assertLogs(level='ERROR') as log:
             self.gmail_sync.sync(label_id='INBOX', start_history_id='12345')
@@ -240,14 +208,12 @@ class GmailSyncTest(unittest.TestCase):
     def test_sync_no_history(self):
         # Mocking Gmail API response with no history
         self.mock_gmail_client.users().history().list().execute.return_value = {}
-        
-        # Running sync
         self.gmail_sync.sync(label_id='INBOX', start_history_id='12345')
 
         # Verifying interactions with mocked Gmail API
         self.mock_gmail_client.users().history().list.assert_called_with(
-            userId='me', 
-            startHistoryId='12345', 
+            userId='me',
+            startHistoryId='12345',
             labelId='INBOX',
             historyTypes=['messageAdded', 'labelAdded']
         )
@@ -271,17 +237,17 @@ class GmailSyncTest(unittest.TestCase):
             subject='Test Email', recieved_date=1634047722, attachments=[]
         )
         with patch.object(self.gmail_sync, 'get_message', return_value=mock_message):
-            with patch.object(self.gmail_sync, '_GmailSync__save_message_attachments') as mock_save_attachments:
+            with patch.object(self.gmail_sync,
+                              '_GmailSync__save_message_attachments') as mock_save_attachments:
                 # Running sync
                 self.gmail_sync.sync(label_id='INBOX', start_history_id='12345')
 
                 # Verifying interactions with mocked methods
                 mock_save_attachments.assert_called_with(mock_message)
 
-
         # Verifying that the history ID is saved after sync
         self.mock_state_store.set_document_by_id.assert_called_with(
-            id='last_sync_state', 
+            id='last_sync_state',
             data={'historyId': '12346', 'updatedTime': unittest.mock.ANY}
         )
 

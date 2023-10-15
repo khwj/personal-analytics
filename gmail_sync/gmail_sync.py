@@ -30,11 +30,11 @@ EMAIL_PATTERNS = {
 
 
 class GmailSync:
-    def __init__(self, 
-                 state_store: StateManager, 
-                 storage: StorageManager, 
+    def __init__(self,
+                 state_store: StateManager,
+                 storage: StorageManager,
                  gmail_client: Optional[build] = None,
-                 base_path: str = '', 
+                 base_path: str = '',
                  credentials_cache_path: str = 'token.json',
                  credentials_doc_id: str = 'google_credentials',
                  sync_state_doc_id: str = 'last_sync_state'):
@@ -50,12 +50,15 @@ class GmailSync:
         - credentials_doc_id (str): Document ID of credentials, defaults to 'google_credentials'.
         - sync_state_doc_id (str): Document ID of sync state, defaults to 'last_sync_state'.
         """
+
+        if not gmail_client:
+            self.__init_gmail_client(credentials_cache_path, credentials_doc_id)
+
         self.__state_store = state_store
         self.__storage = storage
-        self.__gmail = gmail_client or self.__init_gmail_client(credentials_cache_path, credentials_doc_id)
+        self.__gmail = gmail_client
         self.__base_path = base_path.strip('/')
         self.__sync_state_doc_id = sync_state_doc_id
-
 
     def __init_gmail_client(self, cache_path: str, credentials_doc_id: str) -> build:
         """
@@ -79,20 +82,18 @@ class GmailSync:
                     token.write(creds.to_json())
         except Exception as e:
             raise RuntimeError("Failed to initialize Gmail client.") from e
-        
-        return build('gmail', 'v1', credentials=creds)
 
+        return build('gmail', 'v1', credentials=creds)
 
     def __get_last_history_id(self) -> str:
         last_state = self.__state_store.get_document_by_id(self.__sync_state_doc_id)
         return last_state['historyId']
 
-
     def __save_history_id(self, history_id: str):
         ts = datetime.now()
         sync_state = SyncState(historyId=history_id, updatedTime=int(ts.strftime('%s')))
         result = self.__state_store.set_document_by_id(
-            id=self.__sync_state_doc_id, 
+            id=self.__sync_state_doc_id,
             data=vars(sync_state)
         )
         updated_ts = datetime.fromtimestamp(result.update_time.timestamp())
@@ -113,7 +114,7 @@ class GmailSync:
     def __save_message_attachments(self, msg: Message) -> None:
         """Save message attachments based on sender and subject."""
         from_addr = msg.from_address.lower()
-        
+
         for attachment in msg.attachments:
             save_path = self.__get_save_path(from_addr, msg.subject, attachment.filename)
             metadata = {
@@ -134,10 +135,10 @@ class GmailSync:
         import base64
 
         attachment_resp = self.__gmail.users().messages().attachments().get(
-                userId=user_id, 
-                messageId=message_id, 
-                id=attachment_id,
-            ).execute()
+            userId=user_id,
+            messageId=message_id,
+            id=attachment_id,
+        ).execute()
         return base64.urlsafe_b64decode(attachment_resp.get('data'))
 
     def __extract_attachment_info(self, message: Dict) -> List[Dict]:
@@ -148,21 +149,20 @@ class GmailSync:
                 if part.get('body', {}).get('attachmentId'):
                     attachment_id = part['body']['attachmentId']
                     attachments.append({
-                        'filename': part.get('filename', ''), 
+                        'filename': part.get('filename', ''),
                         'mimeType': part.get('mimeType', ''),
                         'attachmentId': attachment_id,
                     })
-                
+
                 # Recursively check if there are nested parts
                 if part.get('parts'):
                     traverse_parts(part['parts'])
-        
+
         # Start the traversal with the top-level parts
         if message.get('payload', {}).get('parts'):
             traverse_parts(message['payload']['parts'])
-        
-        return attachments
 
+        return attachments
 
     def get_message(self, msg_id: str) -> Message:
         message_resp = self.__gmail.users().messages().get(userId='me', id=msg_id).execute()
@@ -173,7 +173,10 @@ class GmailSync:
         attachment_info = self.__extract_attachment_info(message_resp)
         attachments = []
         for attachment in attachment_info:
-            data = self.__download_attachment(msg_id, attachment_id=attachment['attachmentId'], user_id='me')
+            data = self.__download_attachment(
+                msg_id, attachment_id=attachment['attachmentId'],
+                user_id='me'
+            )
             attachments.append(Attachment(
                 id=attachment['attachmentId'],
                 filename=attachment['filename'],
@@ -190,28 +193,28 @@ class GmailSync:
             attachments=attachments
         )
 
-
-    def sync(self, 
-             label_id: str = 'INBOX', 
-             history_types: List[str] = ["messageAdded", "labelAdded"], 
+    def sync(self,
+             label_id: str = 'INBOX',
+             history_types: List[str] = ["messageAdded", "labelAdded"],
              start_history_id: str = None) -> None:
-        
+
         if not start_history_id:
             start_history_id = self.__get_last_history_id()
-        
-        logger.info(f'Syncing GMail from {start_history_id} with label_id={label_id}, history_types={history_types}')
+
+        logger.info(f"Syncing GMail from {start_history_id} with"
+                    + " label_id={label_id}, history_types={history_types}")
 
         try:
             history_resp = self.__gmail.users().history().list(
-                    userId='me', 
-                    startHistoryId=start_history_id, 
-                    labelId=label_id,
-                    historyTypes=history_types
-                ).execute()
+                userId='me',
+                startHistoryId=start_history_id,
+                labelId=label_id,
+                historyTypes=history_types
+            ).execute()
         except Exception as e:
             logger.error(f"Failed to fetch Gmail history: {str(e)}")
             return
-        
+
         if 'history' in history_resp:
             next_history_id = history_resp['historyId']
             msg_ids = set()

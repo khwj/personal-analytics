@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from dataclasses import dataclass
 from typing import Dict
+
 from google.cloud.firestore import Client as FirestoreClient
 from google.oauth2 import service_account
 

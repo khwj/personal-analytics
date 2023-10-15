@@ -29,7 +29,6 @@ class GoogleCloudStorageManager(StorageManager):
         # self.__storage = client
         self.__bucket = client.bucket(bucket_name=bucket)
 
-
     def put(self, key: str, data: Any, metadata: Optional[Dict] = None) -> None:
         try:
             blob = self.__bucket.blob(key)
@@ -48,4 +47,3 @@ class GoogleCloudStorageManager(StorageManager):
             return blob
         except Exception as e:
             raise RuntimeError(f"Error retrieving data with key {key}: {str(e)}") from e
-
