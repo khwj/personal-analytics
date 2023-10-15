@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import threading
@@ -6,8 +7,10 @@ import unittest
 from state_manager import FirestoreStateManager, SyncState, WriteResult
 
 
-TEST_FIRESTORE_HOST = 'localhost'
-TEST_FIRESTORE_PORT = 8143
+logger = logging.getLogger(__name__)
+
+
+TEST_FIRESTORE_HOST = 'localhost:8143'
 
 class FirestoreStateStoreIntegrationTest(unittest.TestCase):
 
@@ -15,20 +18,18 @@ class FirestoreStateStoreIntegrationTest(unittest.TestCase):
     def setUpClass(cls):
         # Start the Firestore emulator as a subprocess
         cls.emulator_process = subprocess.Popen([
-                "gcloud", 
-                "beta", 
-                "emulators", 
-                "firestore", 
-                "start", 
-                f"--host-port={TEST_FIRESTORE_HOST}:{TEST_FIRESTORE_PORT}"
-            ],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
+            "gcloud",
+            "emulators",
+            "firestore",
+            "start",
+            f"--host-port={TEST_FIRESTORE_HOST}"
+        ], stderr=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True)
 
-        ## Give a few seconds to allow the emulator to start up... if its necessary
+        # Give a few seconds to allow the emulator to start up... if its necessary
         # time.sleep(5)
-        
-        os.environ["FIRESTORE_EMULATOR_HOST"] = f"{TEST_FIRESTORE_HOST}:{TEST_FIRESTORE_PORT}"
+        logger.info(cls.emulator_process.stdout)
+
+        os.environ["FIRESTORE_EMULATOR_HOST"] = TEST_FIRESTORE_HOST
         os.environ["GCLOUD_PROJECT"] = "test-project"
         cls.firestore_state_store = FirestoreStateManager(collection="test-collection")
 
@@ -38,11 +39,10 @@ class FirestoreStateStoreIntegrationTest(unittest.TestCase):
         cls.emulator_process.terminate()
         cls.emulator_process.wait()
 
-
     def test_set_and_get_document(self):
         test_id = "test_id"
         test_data = SyncState(historyId="12345", updatedTime=1616885415)
-        
+
         write_result = self.firestore_state_store.set_document_by_id(test_id, vars(test_data))
         self.assertEqual(write_result.status, WriteResult.Status.SUCCESS)
 
@@ -58,10 +58,13 @@ class FirestoreStateStoreIntegrationTest(unittest.TestCase):
     def test_special_characters_in_id(self):
         special_char_id = "test_id_!@#$%^&*()"
         test_data = SyncState(historyId="12345", updatedTime=1616885415)
-        
-        write_result = self.firestore_state_store.set_document_by_id(special_char_id, vars(test_data))
+
+        write_result = self.firestore_state_store.set_document_by_id(
+            special_char_id,
+            vars(test_data)
+        )
         self.assertEqual(write_result.status, WriteResult.Status.SUCCESS)
-        
+
         fetched_data = self.firestore_state_store.get_document_by_id(special_char_id)
         self.assertDictEqual(fetched_data, vars(test_data))
 
