@@ -37,9 +37,8 @@ jobs:
     - name: Install dependencies
       working-directory: ./gmail_sync
       run: |
-        python -m pip install --upgrade pip
-        pip install flake8
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements.test.txt ]; then pip install -r requirements.test.txt; fi
     - name: Lint with flake8
       working-directory: ./gmail_sync
       run: |
@@ -51,3 +50,8 @@ jobs:
       working-directory: ./gmail_sync
       run: |
         python -m unittest -v
+    - name: Generate coverage report
+      working-directory: ./gmail_sync
+      run: |
+        coverage run -m unittest discover
+        coverage report
