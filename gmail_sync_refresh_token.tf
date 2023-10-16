@@ -23,13 +23,8 @@ resource "google_cloudfunctions2_function" "gmail_sync_refresh_token" {
     environment_variables = {
       FIRESTORE_COLLECTION           = "gmail_sync"
       FIRESTORE_DB                   = "default"
-      GOOGLE_CLIENT_SECRETS_FILE     = "/etc/secrets/client_secrets/${data.google_secret_manager_secret.gmail_sync_client_secret.secret_id}"
-      GOOGLE_OAUTH_SCOPES            = "https://www.googleapis.com/auth/gmail.readonly"
-      GMAIL_LABEL_ID                 = "Label_4739348339418472707"
-      GMAIL_HISTORY_TYPES            = "messageAdded,labelAdded"
+      SERVICE_ACCOUNT_KEY_FILE       = "/etc/secrets/sa_keys/${google_secret_manager_secret.gmail_sync_sa_key.secret_id}"
       GOOGLE_CREDENTIALS_DOCUMENT_ID = "google_credentials"
-      # google_auth_oauthlib still need this for some reason 
-      GOOGLE_OAUTH_REDIRECT_URI = "https://${data.google_client_config.this.region}-${data.google_client_config.this.project}.cloudfunctions.net/gmail-sync-auth-callback"
     }
 
     secret_volumes {
@@ -72,8 +67,8 @@ resource "google_cloudfunctions2_function_iam_binding" "gmail_sync_refresh_token
 
 resource "google_cloud_scheduler_job" "invoke_gmail_sync_refresh_token" {
   name        = "invoke-gmail-sync-refresh-token"
-  description = "Refresh Google access token function every 20 minutes"
-  schedule    = "*/20 * * * *"
+  description = "Refresh Google access token function every 30 minutes"
+  schedule    = "*/30 * * * *"
   project     = google_cloudfunctions2_function.gmail_sync_refresh_token.project
   region      = google_cloudfunctions2_function.gmail_sync_refresh_token.location
   time_zone   = "Asia/Bangkok"

@@ -33,7 +33,7 @@ resource "google_secret_manager_secret" "gmail_sync_sa_key" {
 
 resource "google_secret_manager_secret_version" "gmail_sync_sa_key" {
   secret      = google_secret_manager_secret.gmail_sync_sa_key.id
-  secret_data = google_service_account_key.gmail_sync_sa_key.private_key
+  secret_data = base64decode(google_service_account_key.gmail_sync_sa_key.private_key)
 }
 
 resource "google_secret_manager_secret_iam_binding" "gmail_sync_client_secret_sa_binding" {
@@ -42,6 +42,7 @@ resource "google_secret_manager_secret_iam_binding" "gmail_sync_client_secret_sa
   role      = "roles/secretmanager.secretAccessor"
   members = [
     "serviceAccount:${google_service_account.gmail_sync.email}",
+    "serviceAccount:${google_service_account.gmail_sync_download_function_source.email}",
   ]
 }
 
@@ -51,5 +52,6 @@ resource "google_secret_manager_secret_iam_binding" "gmail_sync_sa_key_sa_bindin
   role      = "roles/secretmanager.secretAccessor"
   members = [
     "serviceAccount:${google_service_account.gmail_sync.email}",
+    "serviceAccount:${google_service_account.gmail_sync_download_function_source.email}",
   ]
 }

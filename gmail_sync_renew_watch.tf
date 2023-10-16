@@ -4,7 +4,7 @@ resource "google_cloudfunctions2_function" "gmail_sync_renew_watch" {
 
   build_config {
     runtime     = "python311"
-    entry_point = "renew_watch"
+    entry_point = "renew_watch_handler"
     source {
       storage_source {
         bucket = google_storage_bucket.bookkeeping.name
@@ -22,14 +22,9 @@ resource "google_cloudfunctions2_function" "gmail_sync_renew_watch" {
     environment_variables = {
       FIRESTORE_COLLECTION           = "gmail_sync"
       FIRESTORE_DB                   = "default"
-      GOOGLE_CLIENT_SECRETS_FILE     = "/etc/secrets/client_secrets/${data.google_secret_manager_secret.gmail_sync_client_secret.secret_id}"
-      GOOGLE_OAUTH_SCOPES            = "https://www.googleapis.com/auth/gmail.readonly"
-      GMAIL_LABEL_ID                 = "Label_4739348339418472707"
-      GMAIL_HISTORY_TYPES            = "messageAdded,labelAdded"
+      SERVICE_ACCOUNT_KEY_FILE       = "/etc/secrets/sa_keys/${google_secret_manager_secret.gmail_sync_sa_key.secret_id}"
       GOOGLE_CREDENTIALS_DOCUMENT_ID = "google_credentials"
       GMAIL_NOTIFICATIONS_TOPIC      = "projects/khwunchai/topics/gmail_notifications"
-      # google_auth_oauthlib still need this for some reason 
-      GOOGLE_OAUTH_REDIRECT_URI = "https://${data.google_client_config.this.region}-${data.google_client_config.this.project}.cloudfunctions.net/gmail-sync-auth-callback"
     }
 
     secret_volumes {
@@ -72,8 +67,8 @@ resource "google_cloudfunctions2_function_iam_binding" "gmail_sync_renew_watch_i
 
 resource "google_cloud_scheduler_job" "invoke_gmail_sync_renew_watch" {
   name        = "invoke-gmail-sync-renew-watch"
-  description = "Renew Gmail Push Notification subscription every 2 day"
-  schedule    = "0 */2 * * *"
+  description = "Renew Gmail Push Notification subscription every 3 day"
+  schedule    = "0 0 * * */3"
   project     = google_cloudfunctions2_function.gmail_sync_renew_watch.project
   region      = google_cloudfunctions2_function.gmail_sync_renew_watch.location
   time_zone   = "Asia/Bangkok"
