@@ -58,7 +58,7 @@ class GmailSync:
         self.__credentials_doc_id = credentials_doc_id
 
         if not gmail_client:
-            self.__init_gmail_client(credentials_cache_path, credentials_doc_id)
+            gmail_client = self.__init_gmail_client(credentials_cache_path, credentials_doc_id)
         self.__gmail = gmail_client
 
     def __init_gmail_client(self, credentials_cache_path, credentials_doc_id) -> build:
@@ -97,8 +97,7 @@ class GmailSync:
             id=self.__sync_state_doc_id,
             data=vars(sync_state)
         )
-        updated_ts = datetime.fromtimestamp(result.update_time.timestamp())
-        return {'took': (updated_ts - ts).microseconds}
+        return {'took': (result.update_time - ts).microseconds}
 
     def __get_save_path(self, from_addr, subject, filename):
         """Determine the save path based on sender addresses and subject patterns."""
@@ -202,8 +201,8 @@ class GmailSync:
         if not start_history_id:
             start_history_id = self.__get_last_history_id()
 
-        logger.info(f"Syncing GMail from {start_history_id} with"
-                    + " label_id={label_id}, history_types={history_types}")
+        logger.info(f"Syncing Gmail from {start_history_id} with"
+                    + f" label_id={label_id}, history_types={history_types}")
 
         try:
             history_resp = self.__gmail.users().history().list(
@@ -231,5 +230,7 @@ class GmailSync:
                     logger.error(f"Failed to process message {msg_id}: {str(e)}")
 
             self.__save_history_id(next_history_id)
+            return "{ \"history_id\": \"" + next_history_id + "\"}"
         else:
             logger.info("Data is already up-to-date")
+            return "Data is already up-to-date"

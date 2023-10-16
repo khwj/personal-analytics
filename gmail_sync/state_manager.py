@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -5,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict
 
 from google.cloud.firestore import Client as FirestoreClient
-from google.oauth2 import service_account
+from google.oauth2.service_account import Credentials as ServiceAccountCredentials
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ class WriteResult:
         FAILED = 1
 
     status: Status
+    update_time: datetime
     message: str
 
 
@@ -40,10 +42,14 @@ class StateManager(ABC):
 
 class FirestoreStateManager(StateManager):
 
-    def __init__(self, collection: str, database: str = 'default', credentials_path: str = None):
+    def __init__(self,
+                 collection: str,
+                 database: str = 'default',
+                 service_account_file: str = None):
+
         creds = None
-        if credentials_path:
-            creds = service_account.Credentials.from_service_account_file(credentials_path)
+        if service_account_file:
+            creds = ServiceAccountCredentials.from_service_account_file(service_account_file)
         self.db = FirestoreClient(database=database, credentials=creds)
         self.collection = collection
 
@@ -60,8 +66,10 @@ class FirestoreStateManager(StateManager):
         try:
             doc_ref = self.db.collection(self.collection).document(id)
             result = doc_ref.set(data)
+            update_time = datetime.fromtimestamp(result.update_time.timestamp())
             return WriteResult(
                 status=WriteResult.Status.SUCCESS,
+                update_time=update_time,
                 message=str(result)
             )
         except Exception as e:

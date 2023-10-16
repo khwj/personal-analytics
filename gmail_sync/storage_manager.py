@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Any, Dict
 
 from google.cloud.storage import Client as GCSClient
+from google.oauth2.service_account import Credentials as ServiceAccountCredentials
 
 
 logger = logging.getLogger(__name__)
@@ -25,8 +26,15 @@ class StorageManager(ABC):
 class GoogleCloudStorageManager(StorageManager):
     """StorageManager for Google Cloud Storage."""
 
-    def __init__(self, client: GCSClient, bucket: str):
-        # self.__storage = client
+    def __init__(self, bucket: str,
+                 service_account_file: Optional[str] = None,
+                 client: Optional[GCSClient] = None):
+
+        if not client and not service_account_file:
+            raise RuntimeError("Neither authorized_user_json_file or client is provided")
+        if not client:
+            creds = ServiceAccountCredentials.from_service_account_file(service_account_file)
+            client = GCSClient(credentials=creds)
         self.__bucket = client.bucket(bucket_name=bucket)
 
     def put(self, key: str, data: Any, metadata: Optional[Dict] = None) -> None:
@@ -35,7 +43,7 @@ class GoogleCloudStorageManager(StorageManager):
             if metadata:
                 blob.metadata = metadata
             blob.upload_from_string(data)
-            logger.info(f"Data stored with key: {key}")
+            logger.info(f"Blob saved with key: {key}")
         except Exception as e:
             raise RuntimeError(f"Error storing data with key {key}: {str(e)}") from e
 

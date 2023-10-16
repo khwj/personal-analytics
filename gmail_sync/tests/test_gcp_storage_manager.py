@@ -13,8 +13,8 @@ class TestGoogleCloudStorageManager(unittest.TestCase):
         mock_gcs_client.bucket.return_value = self.mock_bucket
         self.bucket_name = "test_bucket"
         self.storage_manager = GoogleCloudStorageManager(
+            bucket=self.bucket_name,
             client=mock_gcs_client,
-            bucket=self.bucket_name
         )
 
     def test_put_data(self):
