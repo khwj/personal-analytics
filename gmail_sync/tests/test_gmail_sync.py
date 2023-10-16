@@ -1,3 +1,4 @@
+from datetime import datetime
 import tempfile
 import unittest
 from unittest.mock import MagicMock, Mock, patch
@@ -17,8 +18,8 @@ class GmailSyncTest(unittest.TestCase):
         self.mock_state_store = Mock(spec=StateManager)
 
         mock_set_document_result = Mock()
+        mock_set_document_result.update_time.return_value = datetime.now()
         self.mock_state_store.set_document_by_id.return_value = mock_set_document_result
-        mock_set_document_result.update_time.timestamp.return_value = 1634047722
         mock_gmail_build.return_value = self.mock_gmail_client
 
         # Initializing GmailSync with mocked dependencies

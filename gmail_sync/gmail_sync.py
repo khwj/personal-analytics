@@ -1,3 +1,4 @@
+import base64
 import logging
 import os
 import re
@@ -97,7 +98,7 @@ class GmailSync:
             id=self.__sync_state_doc_id,
             data=vars(sync_state)
         )
-        return {'took': (result.update_time - ts).microseconds}
+        return result.update_time
 
     def __get_save_path(self, from_addr, subject, filename):
         """Determine the save path based on sender addresses and subject patterns."""
@@ -114,7 +115,6 @@ class GmailSync:
     def __save_message_attachments(self, msg: Message) -> None:
         """Save message attachments based on sender and subject."""
         from_addr = msg.from_address.lower()
-
         for attachment in msg.attachments:
             save_path = self.__get_save_path(from_addr, msg.subject, attachment.filename)
             metadata = {
@@ -132,8 +132,6 @@ class GmailSync:
             logger.info(f"File '{attachment.filename}' saved at '{destination}'")
 
     def __download_attachment(self, message_id: str, attachment_id: str, user_id='me'):
-        import base64
-
         attachment_resp = self.__gmail.users().messages().attachments().get(
             userId=user_id,
             messageId=message_id,
