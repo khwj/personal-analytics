@@ -1,3 +1,7 @@
+locals {
+  google_credentials_document_id = "google_credentials"
+  gmail_sync_state_document_id   = "last_sync_state"
+}
 resource "google_cloudfunctions2_function" "gmail_sync_connect_callback" {
   name     = "gmail-sync-connect-callback"
   location = data.google_client_config.this.region
@@ -14,20 +18,20 @@ resource "google_cloudfunctions2_function" "gmail_sync_connect_callback" {
   }
 
   service_config {
-    max_instance_count    = 1
-    min_instance_count    = 0
-    available_memory      = "256M"
+    max_instance_count = 1
+    min_instance_count = 0
+    available_memory   = "256M"
+    # Need to handle redirection from Google OAuth
     ingress_settings      = "ALLOW_ALL"
     service_account_email = google_service_account.gmail_sync_connect.email
 
     environment_variables = {
-      FIRESTORE_COLLECTION           = "gmail_sync"
       FIRESTORE_COLLECTION           = var.gmail_sync_firestore_collection
       FIRESTORE_DB                   = var.gmail_sync_firestore_db
       GOOGLE_CLIENT_SECRETS_FILE     = "/etc/secrets/client_secrets/${data.google_secret_manager_secret.gmail_sync_connect_client_secret.secret_id}"
       SERVICE_ACCOUNT_KEY_FILE       = "/etc/secrets/sa_keys/${google_secret_manager_secret.gmail_sync_sa_key.secret_id}"
       GOOGLE_OAUTH_SCOPES            = "https://www.googleapis.com/auth/gmail.readonly"
-      GOOGLE_CREDENTIALS_DOCUMENT_ID = "google_credentials"
+      GOOGLE_CREDENTIALS_DOCUMENT_ID = local.google_credentials_document_id
       # google_auth_oauthlib still need this for some reason 
       GOOGLE_OAUTH_REDIRECT_URI = "https://${data.google_client_config.this.region}-${data.google_client_config.this.project}.cloudfunctions.net/gmail-sync-auth-callback"
     }
@@ -71,7 +75,7 @@ resource "google_cloudfunctions2_function" "gmail_sync_connect_refresh_token" {
       FIRESTORE_COLLECTION           = var.gmail_sync_firestore_collection
       FIRESTORE_DB                   = var.gmail_sync_firestore_db
       SERVICE_ACCOUNT_KEY_FILE       = "/etc/secrets/sa_keys/${google_secret_manager_secret.gmail_sync_sa_key.secret_id}"
-      GOOGLE_CREDENTIALS_DOCUMENT_ID = "google_credentials"
+      GOOGLE_CREDENTIALS_DOCUMENT_ID = local.google_credentials_document_id
     }
 
     secret_volumes {
@@ -115,11 +119,11 @@ resource "google_cloudfunctions2_function" "gmail_sync_download" {
       SERVICE_ACCOUNT_KEY_FILE       = "/etc/secrets/sa_keys/${google_secret_manager_secret.gmail_sync_sa_key.secret_id}"
       GMAIL_LABEL_ID                 = var.gmail_sync_download_label_id
       GMAIL_HISTORY_TYPES            = "messageAdded,labelAdded"
-      GOOGLE_CREDENTIALS_DOCUMENT_ID = "google_credentials"
+      GOOGLE_CREDENTIALS_DOCUMENT_ID = local.google_credentials_document_id
 
       DESTINATION_BUCKET_NAME = google_storage_bucket.lakehouse.name
-      DESTINATION_BASE_PATH   = "bronze"
-      SYNC_STATE_DOCUMENT_ID  = "last_sync_state"
+      DESTINATION_BASE_PATH   = var.attachment_save_path
+      SYNC_STATE_DOCUMENT_ID  = local.gmail_sync_state_document_id
     }
 
     secret_volumes {
@@ -170,7 +174,7 @@ resource "google_cloudfunctions2_function" "gmail_sync_renew_watch" {
       FIRESTORE_COLLECTION           = var.gmail_sync_firestore_collection
       FIRESTORE_DB                   = var.gmail_sync_firestore_db
       SERVICE_ACCOUNT_KEY_FILE       = "/etc/secrets/sa_keys/${google_secret_manager_secret.gmail_sync_sa_key.secret_id}"
-      GOOGLE_CREDENTIALS_DOCUMENT_ID = "google_credentials"
+      GOOGLE_CREDENTIALS_DOCUMENT_ID = local.google_credentials_document_id
       GMAIL_NOTIFICATIONS_TOPIC      = var.gmail_sync_pubsub_topic
     }
 

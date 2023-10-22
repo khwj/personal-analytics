@@ -74,6 +74,11 @@ variable "lakehouse_bucket_name" {
   type = string
 }
 
+variable "attachment_save_path" {
+  type    = string
+  default = "bronze"
+}
+
 variable "bookkeeping_bucket_name" {
   type = string
 }
