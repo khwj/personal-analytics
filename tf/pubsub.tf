@@ -1,5 +1,4 @@
 resource "google_pubsub_topic" "gmail_notifications" {
-  name                       = "gmail_notifications"
-  message_retention_duration = "606200s" # 7 days
-  # message_retention_duration = "86600s" # 1 day
+  name                       = var.gmail_sync_pubsub_topic_name
+  message_retention_duration = var.gmail_sync_pubsub_retention_duration
 }

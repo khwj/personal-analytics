@@ -175,7 +175,7 @@ resource "google_cloudfunctions2_function" "gmail_sync_renew_watch" {
       FIRESTORE_DB                   = var.gmail_sync_firestore_db
       SERVICE_ACCOUNT_KEY_FILE       = "/etc/secrets/sa_keys/${google_secret_manager_secret.gmail_sync_sa_key.secret_id}"
       GOOGLE_CREDENTIALS_DOCUMENT_ID = local.google_credentials_document_id
-      GMAIL_NOTIFICATIONS_TOPIC      = var.gmail_sync_pubsub_topic
+      GMAIL_NOTIFICATIONS_TOPIC      = google_pubsub_topic.gmail_notifications.id
     }
 
     secret_volumes {
