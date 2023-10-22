@@ -199,8 +199,8 @@ class GmailSync:
         if not start_history_id:
             start_history_id = self.__get_last_history_id()
 
-        logger.info(f"Syncing Gmail from {start_history_id} with"
-                    + f" label_id={label_id}, history_types={history_types}")
+        logger.info(f"Syncing Gmail from {start_history_id} with "
+                    + f"label_id={label_id}, history_types={history_types}")
 
         try:
             history_resp = self.__gmail.users().history().list(
